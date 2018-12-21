@@ -1,4 +1,4 @@
-package com.owen.algorithm;
+package com.owen.algorithm.offer;
 
 /**
  * numbers in array of length n are ranging from 0 to n - 1, find the duplicate

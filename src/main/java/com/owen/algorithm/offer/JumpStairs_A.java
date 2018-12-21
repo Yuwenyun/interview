@@ -1,4 +1,4 @@
-package com.owen.algorithm;
+package com.owen.algorithm.offer;
 
 /**
  * n stairs, m stairs each time(0 < m <= n)

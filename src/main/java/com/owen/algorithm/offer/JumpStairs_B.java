@@ -1,4 +1,4 @@
-package com.owen.algorithm;
+package com.owen.algorithm.offer;
 
 /**
  * n stairs, 1 or 2 stairs each step
