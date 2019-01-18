@@ -3,7 +3,7 @@ package com.owen.algorithm.offer;
 import com.owen.NodeUtil;
 import com.owen.algorithm.TreeNode;
 
-public class BuildTreeWithPreInOrder
+public class _7BuildTreeWithPreInOrder
 {
     public static void main(String[] args)
     {

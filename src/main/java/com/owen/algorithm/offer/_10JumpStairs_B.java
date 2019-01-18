@@ -8,7 +8,7 @@ package com.owen.algorithm.offer;
  * 2. if we jump 2 stairs, there will be f(n - 2) methods for left stairs
  * so f(n) = f(n - 1) + f(n - 2)
  */
-public class JumpStairs_B
+public class _10JumpStairs_B
 {
     public static void main(String[] args)
     {

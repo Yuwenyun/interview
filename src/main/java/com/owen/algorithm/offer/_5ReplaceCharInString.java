@@ -10,7 +10,7 @@ import java.util.Arrays;
  * exp: "We are happy"
  * result: "We%20are%20happy"
  */
-public class ReplaceCharInString
+public class _5ReplaceCharInString
 {
     public static void main(String[] args)
     {

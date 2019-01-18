@@ -6,7 +6,7 @@ import com.owen.algorithm.ListNode;
 /**
  * print the list element from tail to head
  */
-public class PrintListReversely
+public class _6PrintListReversely
 {
     public static void main(String[] args)
     {

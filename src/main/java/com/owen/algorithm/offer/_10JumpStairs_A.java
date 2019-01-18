@@ -10,7 +10,7 @@ package com.owen.algorithm.offer;
  * so: f(n) = f(n - 1) + f(n - 2) + ... + f(1) + 1,
  * note: the extra 1 at the end is for jump n stairs to reach stair n
  */
-public class JumpStairs_A
+public class _10JumpStairs_A
 {
     public static void main(String[] args)
     {

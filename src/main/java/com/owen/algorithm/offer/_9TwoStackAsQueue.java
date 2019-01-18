@@ -2,11 +2,11 @@ package com.owen.algorithm.offer;
 
 import java.util.Stack;
 
-public class TwoStackAsQueue
+public class _9TwoStackAsQueue
 {
     public static void main(String[] args)
     {
-        TwoStackAsQueue outer = new TwoStackAsQueue();
+        _9TwoStackAsQueue outer = new _9TwoStackAsQueue();
         StackQueue<Integer> queue = outer.new StackQueue<>();
         queue.inqueue(3);
         queue.inqueue(4);

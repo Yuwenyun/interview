@@ -6,7 +6,7 @@ import org.apache.commons.lang3.StringUtils;
  * find path in matrix
  * back-tracking(回溯法)
  */
-public class FindPathInMatrix {
+public class _12FindPathInMatrix {
 
     public static void main(String[] args)
     {
