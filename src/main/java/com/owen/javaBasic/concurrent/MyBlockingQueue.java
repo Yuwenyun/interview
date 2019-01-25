@@ -6,6 +6,12 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * take() and put() shall block the thread when satisfy the condition
+ *
+ * 1. ArrayBlockingQueue: 维护定长数组以缓存数据对象，维护head/tail指针指向首位，读写锁不分离
+ * 2. LinkedBlockingQueue: 链表实现，不定长
+ * 3. DelayQueue: 延时指定时间后才能获取相关数据
+ * 4. PriorityBlockingQueue: 基于优先级的阻塞队列
+ * 5. SynchronousQueue: 只能缓冲一个数据对象
  */
 public class MyBlockingQueue<T> {
 

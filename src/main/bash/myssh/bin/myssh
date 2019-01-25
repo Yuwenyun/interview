@@ -3,12 +3,14 @@
 myssh_home=`dirname $0`/..
 echo ${myssh_home}
 
-# process the target host
-targetHost=${1}
-if [ -z ${targetHost} ]; then
-  echo "Usage: ${0} [targetHost]"
+# process the function
+if [[ $# < 2 ]]; then
+  echo "Usage: ${0} [function] [targetHost]"
   exit
 fi
+
+func=${1}
+targetHost=${2}
 
 # load hosts properties file
 source ${myssh_home}/config/hosts.properties
@@ -19,4 +21,24 @@ eval echo \$${targetHost}
 eval echo \${${targetHost}_acct}
 eval echo \${${targetHost}_pass}
 
-eval /usr/local/bin/sshpass -p \${${targetHost}_pass} ssh \${${targetHost}_acct}@\$${targetHost}
+host(){
+  eval /usr/local/bin/sshpass -p \${${targetHost}_pass} ssh \${${targetHost}_acct}@\$${targetHost}
+}
+
+mysql(){
+  eval /usr/local/bin/sshpass -p \${${targetHost}_pass} /Users/yuwenyun/Documents/services/mysql/bin/mysql -h \$${targetHost} -u \${${targetHost}_acct} -p
+}
+
+case $func in
+  host)
+    echo "Connecting to host: ${targetHost}..."
+    host
+    ;;
+  mysql)
+    echo "Connecting to host: ${targetHost} with mysql..."
+    mysql
+    ;;
+  *)
+    echo "Unsupported function..."
+    ;;
+esac
