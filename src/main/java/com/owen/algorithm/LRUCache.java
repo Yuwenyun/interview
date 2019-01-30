@@ -1,93 +1,94 @@
 package com.owen.algorithm;
 
 import java.util.HashMap;
+import java.util.Map;
 
-/**
- * create a cache which is similar like LinkedHashMap
- */
 public class LRUCache<K, V>
 {
-    private HashMap<K, Node<V>> map;
-    private Node<V> head, tail;
+    private LinkedNode<K, V> head, tail;
+    private Map<K, LinkedNode<K, V>> map;
+    private int capacity;
 
-    public LRUCache(){
-        this.map = new HashMap<K, Node<V>>();
+    public LRUCache(int capacity){
+        this.capacity = capacity;
+        this.head = new LinkedNode(null, null);
+        this.tail = new LinkedNode(null, null);
+        this.head.setNextNode(this.tail);
+        this.tail.setPreNode(this.head);
+        this.map = new HashMap<K, LinkedNode<K, V>>();
     }
 
-    public void put(K key, V value){
-        Node<V> storedValue = this.map.get(key);
-        // value not exist before, insert directly
-        if(storedValue == null){
-            storedValue = new Node<V>(value);
-            this.map.put(key, storedValue);
-            if(this.tail != null){
-                this.tail.next = storedValue;
-            }
-            storedValue.pre = this.tail;
-            this.tail = storedValue;
+    public V get(K key){
+        LinkedNode<K, V> valueNode = this.map.get(key);
+        if(valueNode != null){
+            valueNode.getPreNode().setNextNode(valueNode.getNextNode());
+            valueNode.getNextNode().setPreNode(valueNode.getPreNode());
+            appendToTail(valueNode);
+            return valueNode.getValue();
         }
-        else{
-            // not the same value, we override it
-            if(!storedValue.equals(value)){
+        return null;
+    }
 
-            }
+    public void set(K key, V value){
+        LinkedNode<K, V> valueNode = this.map.get(key);
+        if(valueNode != null){
+            valueNode.getPreNode().setNextNode(valueNode.getNextNode());
+            valueNode.getNextNode().setPreNode(valueNode.getPreNode());
+            appendToTail(valueNode);
+            valueNode.setValue(value);
+            return;
+        }
+        LinkedNode<K, V> newNode = new LinkedNode(key, value);
+        if(this.capacity == this.map.size() && this.capacity != 0){
+            // remove head
+            LinkedNode<K, V> removeNode = this.head.getNextNode();
+            removeNode.getNextNode().setPreNode(this.head);
+            this.head.setNextNode(removeNode.getNextNode());
+            this.map.remove(removeNode.getKey());
+        }
+        if(this.capacity != 0){
+            appendToTail(newNode);
+            this.map.put(key, newNode);
         }
     }
 
-    private class Node<T>{
-        private Node<T> pre;
-        private Node<T> next;
-        private T t;
-
-        public Node(T t){
-            this.t = t;
+    private void appendToTail(LinkedNode<K, V> newNode){
+        if(newNode != null){
+            this.tail.getPreNode().setNextNode(newNode);
+            newNode.setPreNode(this.tail.getPreNode());
+            this.tail.setPreNode(newNode);
+            newNode.setNextNode(this.tail);
         }
+    }
 
-        public Node<T> getPre()
-        {
-            return pre;
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("LRUCache: ");
+        LinkedNode<K, V> node = this.head.getNextNode();
+        while(node != null && node != this.tail){
+            builder.append("[key=").append(node.getKey())
+                    .append(",value=").append(node.getValue())
+                    .append("]");
+            node = node.getNextNode();
         }
+        return builder.toString();
+    }
 
-        public void setPre(Node<T> pre)
-        {
-            this.pre = pre;
-        }
+    public static void main(String[] args){
 
-        public Node<T> getNext()
-        {
-            return next;
-        }
+        LRUCache<String, String> cache = new LRUCache<>(4);
+        cache.set("1", "Owen");
+        cache.set("2", "Jenney");
+        cache.get("1");
+        cache.set("3", "Vincent");
+        System.out.println(cache.toString());
 
-        public void setNext(Node<T> next)
-        {
-            this.next = next;
-        }
+        cache.set("4", "Alice");
+        cache.get("2");
+        System.out.println(cache.toString());
 
-        public T getT()
-        {
-            return t;
-        }
-
-        public void setT(T t)
-        {
-            this.t = t;
-        }
-
-        @Override
-        public boolean equals(Object o)
-        {
-            if (this == o) { return true; }
-            if (o == null || getClass() != o.getClass()) { return false; }
-
-            Node<T> node = (Node<T>) o;
-
-            return t.equals(node.t);
-        }
-
-        @Override
-        public int hashCode()
-        {
-            return t.hashCode();
-        }
+        cache.set("5", "Ricy");
+        System.out.println(cache.toString());
     }
 }
