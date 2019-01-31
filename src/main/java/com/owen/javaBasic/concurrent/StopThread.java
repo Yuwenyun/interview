@@ -4,8 +4,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * When stopping a thread,
- * 1. if the thread is blocked, call its interrupt() method to mark interrupt flag as True,
+ * 1. if the thread is blocked by calling sleep, call its interrupt() method to mark interrupt flag as True,
  *    at the same time, an InterruptedException will be thrown
+ * 2. if the thread is blocked on synchronized method waiting for lock, call its interrupt() method won't
+ *    interrupt the thread at all.
  * 2. if the thread is running, call isInterrupted() method to get the value of interrupt flag
  *
  * note:
