@@ -1,4 +1,4 @@
-package com.owen.designPattern;
+package com.owen.designPattern.singleton;
 
 public class Singleton_HungryType
 {
