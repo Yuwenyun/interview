@@ -1,0 +1,237 @@
+Java Basic
+1.  ArrayList如何自增长？
+    插入数据无法容纳时，新建大小capacity + (capacity >> 1)的数组，并Arrays.copyOf()将所有元素复制过去
+2.  ArrayList和LinkedList什么情况下使用？
+    频繁读取少量增删操作选择ArrayList，反之使用LinkedList
+
+3.  如何复制一个ArrayList到另一个ArrayList
+    a. ArrayList<T> newArray = oldArray.clone();
+    b. ArrayList<T> newArray = new ArrayList<>(oldArray);
+    c. ArrayList<T> newArray = Arrays.copyOf(oldArray, oldArray.size());
+
+4.  ArrayList的指定index增删操作效率低，会移动元素，调用的System.arraycopy(src, srcPos, des, desPos, length);
+5.  fail-fast机制
+    a. ArrayList内部类Itr实现了Iterator接口并维护了一个从ArrayList的modCount属性复制过来的expectedModCount的值。
+    b. 调用迭代器Itr的next()和remove()操作都会检查expectedModCount和modCount是否相等
+    c. ArrayList的增删查改操作中，导致扩容的增加和所有删除操作都会使得modCount++，查和改不会导致modCount改变
+    d. Itr检查到两个值不同主动抛出ConcurrentModificationException异常
+
+6.  LinkedList底层实现是Node类型的双向链表
+    a. ArrayList通过调用System.arraycopy()实现批量增加，LinkedList使用for循环遍历新增元素转化的数组依次插入节点
+    b. 通过下标获取某个元素时，会计算给定index值处于size的前半端还是后半端决定从head/tail遍历过去，提升效率
+    c. 增、删操作都会该表modCount的值
+
+7.  PriorityQueue使用数组实现的完全二叉树结构(小顶堆)，不允许null元素
+    a. 扩容与ArrayList相似
+    b. add()/offer()都是向数组中插入元素，会引起元素位置调整以满足小顶堆性质，若失败，前者抛出异常，后者返回false
+    c. element()/peek()都是返回根节点元素(index=0，不删除)，失败时前者抛出异常，后者返回null
+    d. remove()/poll()都是删除根节点元素，引起位置调整，将尾节点元素复制到根节点，并调整使得满足小顶堆，若失败，前者异常后者null
+    e. 删除任意元素，若该元素为尾节点，直接删除无调整，若不是尾节点，将尾节点复制到该删除节点处调整
+
+8.  ArrayDeque是Deque双端队列的实现类，使用数组存储元素，维护head/tail两个指针，不允许null元素
+    a. head与tail相等时扩容为两倍
+    b. addFirst()在head指针之前添加元素，元素添加的位置计算为(head - 1) & (size - 1)
+    c. addLast()在tail指针之后添加元素
+
+9.  HashMap底层使用类型为Node的数组存储数据，Node是实现Map.Entry的存储键值对的单向链表节点
+    a. put()过程，key为空直接放index为0的位置，否则使用key的hash值高16位与低16位进行异或得到的结果与(size - 1)进行与计算得到数组中的index
+       如果该index处有元素，则发生hash冲突，遍历该处链表，若找到key相同的节点直接更新节点的值，否则将新节点添加到链表最后
+    b. 扩容过程，存储键值对数目超过size(16) * factor(0.75)时需要扩容，新建数组，同一index位置的元素链表各元素key的hash值与oldSize进行与操作，
+       若结果为0，该元素放在新数组的相同index的位置，否则放在index + oldSize的位置
+
+10. LinkedHashMap继承自HashMap，使用HashMap的Node数组存储数据，并维护一个继承自HashMap.Node的静态内部类Entry形成的双向链表。该链表维护着
+    HashMap中各个元素的访问顺序(LRU策略)
+
+11. HashSet内部使用HashMap存储数据，键为插入的值，值为new Object()
+    TreeSet基于TreeMap实现的排序集，TreeMap基于红黑树实现，内部使用Entry类型存储键值对，Entry(key,value,left,right,parent,color)
+    (http://www.cnblogs.com/skywang12345/p/3310928.html)
+
+    性能: EnumSet > HashSet > LinkedHashSet -> TreeSet
+    EnumSet: 专门存放枚举值的集合，使用二进制位来存储
+    HashSet: 使用HashMap来存储数据，值放到键的位置
+    LinkedHashSet: 维护一个额外的访问顺序的list
+    TreeSet: 使用TreeMap实现，TreeMap又是使用的红黑树使得树平衡
+
+12. ThreadLocal
+    a. 每一个Thread对象内部都有一个类型为ThreadLocal.ThreadLocalMap的属性
+    b. ThreadLocalMap内部维护了一个类型为继承WeakReference<ThreadLocal>的Entry的数组，该Entry维护ThreadLocal(键)和Object(值)两个属性
+    c. 调用threadLocal.set(t)方法将会生成以threadLocal为键，t为值的键值对存储在当前thread的ThreadLocalMap属性里
+    d. 内存充足时可以使用threadLocal为不同线程提供某变量副本，使得各线程对变量的操作互不相干
+
+13. 枚举类型
+    a. 所有枚举类型都继承自java.lang.Enum抽象类，枚举类型的每一个值都会映射到protected Enum(String name, int ordinal)构造函数中
+    b. 自定义Enum类型的成员变量，需要在class定义中先枚举所有值，再按照class定义的语法定义
+
+14. NIO
+    a. 通道: 连接数据源与缓冲区的实体，包括FileChannel, DatagramChannel, SocketChannel, ServerSocketChannel等，涵盖了各种数据源
+    b. 缓冲: 缓存通道里的数据，常用的ByteBuffer, CharBuffer, IntBuffer等
+       capacity: 缓冲区最大容量
+       limit: 写模式下与capacity相同，读模式下表示可读内容最大位置
+       position: 写模式下开始写的位置，读模式下开始读的位置
+       flip(): 转换为读模式，limit设置到position位置，position归0
+       clear(): 设置position=0, limit=capacity，并不会清空数据，写入时直接覆盖
+    c. selector: 允许单线程处理多个通道
+
+JVM
+1.  垃圾收集器
+    年轻代: Serial, ParNew, ParallelScavenge
+    老年代: CMS, SerialOld, ParallelOld
+    老年代/年轻代: G1
+
+2.  各个垃圾收集器
+    a. Serial: 复制算法，单线程，需要暂停所有工作线程，client模式下使用，简单高效，-XX:+UseSerialGC
+    b. ParNew: Serial的多线程版本，默认线程数目同CPU数目，server模式下使用，-XX:+UseConcMarkSweepGC使用CMS(老年代)会默认使用ParNew作为新生代收集器
+    c. ParallelScavenge: 应用在新生代，目标是达到一个可控的吞吐量(CPU用户代码时间/(用户代码时间 + GC时间))，server模式下使用，适合专注于后台计算少交互的应用
+       -XX:+MaxGCPauseMillis: 控制垃圾收集最大停顿时间
+       -XX:+GCTimeRatio=n(0<n<100): 垃圾收集时间占总时间比例，1/(1 + n)
+    d. SerialOld: 单线程，应用在老年代，标记整理算法
+    e. ParallelOld: 老年代多线程，标记整理算法，适合server模式下多CPU，-XX:+UseParallelOldGC
+    f. CMS: 标记清除算法(不压缩，产生内部碎片)，最短回收停顿
+       initial mark: 停顿所有线程，标记从老年代中的root对象和新生代中指向的老年代中的对象
+       concurrent mark: 不用停顿线程，标记上一阶段已标记对象能到达的老年代中的对象，此时因为应用线程还在运行老年代会新增存活对象
+       remark: 停顿所有线程，标记所有老年代中存活的对象
+       concurrent sweep: 并发清除所有未被标记的对象
+
+       CMS因为标记过程用户线程也在运行，此时产生垃圾无法处理(浮动垃圾)，
+       如果CMS运行期间内存空间不够则发生concurrent mode failure，虚拟机将临时启用serialOld进行垃圾收集
+       使用的标记清除算法产生空间碎片
+
+3.  常用JVM参数配置
+    -Xmx20m: 堆内存最大20M
+    -Xms20m: 堆内存最小20M
+    -Xmn10m: 新生代10M
+    -XX:SurvivorRatio=8: 参数命名为Survivor，8实际是Eden区域，即Survivor:Eden = 1:8
+    -XX:NewRatio=4: 参数命名为New，4实际是老年代，即New:Old = 1:4
+    -XX:+HeapDumpOnOutOfMemoryError -XX:+HeapDumpPath=/usr/oom.dump: 指定发生OOM异常导出内存状态到oom.dump文件
+
+算法
+1.  基本概念
+    度: 子节点的数目
+    深度: 根节点为1，根节点子节点为2，往下为深度
+    高度: 叶节点为1，往上为高度
+    二叉树中，叶子节点数目a与度为2的节点b的关系: a = b + 1
+
+2.  数组中二分查找，满足查找效率，增删开销大 —>
+    二叉查找树使得查找与增删效率都高，但是随着插入数据增多不再平衡 ->
+    2-3查找树解决平衡问题: 
+      a. 插入数据a，先查找a所在位置，没有查到则在查询的最后节点处增加数据a，根据实际情况判断是否向上裂变
+      b. 删除数据a，先查找a所在的位置
+
+3.  红黑树是使用红链接连接度为3的节点的两个键，并且永远是左向，左旋逆时针，右旋顺时针
+    (https://www.jianshu.com/p/bbd5d5b4d1a3)
+
+4.  B树, m阶是指非叶子节点最多m个子节点，非叶子节点子节点数目(m/2, m)
+    B+树，非叶子节点不存储数据，数据存储在叶子节点，非叶子节点存储导航数据，所有叶子节点有指针相连
+    B*树，非叶子节点有指针指向兄弟节点
+
+Spring
+1.  什么是spring boot: 基于spring framework的简化繁重配置，并且可独立运行的一站式解决方案
+    独立运行: 内置各种servlet容器，tomcat, jetty等，打包成独立的可执行jar包即可
+    简化配置: 提供各种启动器，自动依赖其他组件，减少maven的配置
+    自动配置: 根据当前路径下的类，jar包来自动配置bean，无需其他配置
+    应用监控: 提供一系列端点来监控服务以及应用
+
+2.  常用的spring boot starter:
+    spring-boot-starter-web: 创建web应用集成的所有依赖集，包括嵌入的Tomcat服务器
+    spring-boot-starter-test: 创建单元测试和集成测试所需要的依赖
+    spring-boot-starter-security: 使用spring security添加身份验证和角色认证相关功能
+    mybatis-spring-boot-starter: 集成mybatis
+
+3.  开启spring boot特性的方式有哪些
+    a. 继承spring-boot-starter-parent
+    b. 导入spring-boot-dependencies
+
+4.  spring boot自动配置的原理
+    @EnableAutoConfiguration将加载类路径及所有jar包下META/spring.factories文件，此文件配置
+        org.springframework.boot.autoconfigure.EnableAutoConfiguration=...
+    若类路径下存在该配置项配置的类，则会加载配置类，该配置类中又可以通过@ConditionalOnClass等注解决定相关配置是否存在，若存在则新建bean
+
+5.  spring boot读取配置的几种方式
+    a. 读取application配置文件.properties/.yml
+       a). @Value("${db.url}"
+       b). @ConfigurationProperties(prefix="db") public class DB{ private String url; }
+    b. 读取指定文件: @PropertySource(value="../myProperties.properties") public class DBConfig{ ... }
+       结合@Value注解DBConfig.java中的属性
+       @PropertySource不支持.yml文件
+
+6.  如何使用profile:
+    application.properties
+    application-dev.properties
+    application-test.properties
+
+    a. 在application.properties中配置spring.profiles.active=test则将使用application-test.properties中的配置
+    b. @Profile与@Configuration和@Component结合使用将在指定激活的Profile时才有效
+
+
+Kafka
+1.  kafka特性
+    a. 将消息根据topic进行分类，每个topic由多个partition组成，每个partition有多个副本，主partition和副partition分布在多个节点上
+    b. producer和consumer以及多个kafka instance组成的集群都依赖于zookeeper保存一些meta信息
+    c. 每个partition在存储层面是append log，任何添加到partition的消息都被追加到log的尾部，每条消息的位置由一个唯一的offset标志
+    d. consumer根据自己持有的offset控制消费消息的任意顺序，一般是线性向前
+
+2.  kafka producer如何决定消息发到哪个分区: 根据消息的key的hash值取模partition数目来决定，如果没有key，随机选择一个partition
+    kafka consumer的分区策略:
+    a. range策略: 3个consumer(c1,c2,c3)，5个partition(p1,p2,p3,p4,p5)
+       先决定每个consumer消费几个partition，5/3=1, 余2
+       在按每个consumer消费的分区数目分配: c1=p1,p2, c2=p3,p4, c3=p5
+
+       如果有两个topic t1(p11,p12,p13,p14,p15) t2(p21,p22,p23,p24,p25)
+       则c1=p11,p12,p21,p22, c2=p13,p14,p23,p24, c3=p15,p25
+
+    b. round-robin: 所有分区按照分区id的hash值排序，依次分配给consumer
+       排完序的partition: p1,p2,p3,p4,p5
+       则c1=p1,p4, c2=p2,p5, c3=p3
+
+3.  kafka如何保证数据一致性?
+    一致性: 对于对client可见的消息a，如果leader挂了，client仍然可以获取消息a
+    ISR: follower同步的leader的数据总是较为落后，对于leader有follower还没能同步的数据有一个阙值，在此阙值内的follower组成的集合称为ISR
+    HW: leader收到的消息需要等到follower都同步之后才会将HW指针指向这条消息，此时对client来说这条消息才可消费
+
+4.  producer数据可靠性级别通过设置acks参数
+    a. 0: 无论数据是否写入成功，server不会返回ack信息
+    b. 1: leader写入成功则返回ack
+    c. -1: leader和所有ISR都写入成功返回ack
+    note: 光靠设置acks=-1不能保证数据不丢失，若ISR只有leader则成为了ack设置为1的情况，若leader挂掉则仍然可能丢失数据
+
+5.  生产者的幂等性: 生产者retry产生重复消息可以通过producer id和sequence num解决
+    producer id: producer的唯一标志
+    sequence num: producer发送的每个<topic, partition>数据都对应一个从0开始都序列号
+    (实例化producer配置: enable.idempotence=true)
+
+    Exactly once: 幂等性
+    At most once: 最多一次，可能丢失数据
+    At least once: 最少一次，可能数据重复
+    kafka的幂等性只能保证一个producer对一个topic的一个partition exactly once.要保证多个分区也exactly once，需要引入事务
+
+6.  kafka事务属性是指一系列的生产者生产消息和消费者提交偏移量的操作在一个事务，或者说是是一个原子操作。若consumer在提交offset到zk之前挂了，
+    则可能导致rebalance之后consumer消费过的数据被重复消费。kafka从0.11版本开始支持事物
+
+7.  kafka如何实现高吞吐率:
+    a. 磁盘顺序读写，减少扇区旋转时间
+    b. 利用操作系统零拷贝的特性
+    c. partition由多个分段文件(segment)组成，面向小文件append操作更为轻便
+    d. 由producer发送的数据会缓存，达到阙值之后批量发送
+    e. 对发送的数据进行数据压缩
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
