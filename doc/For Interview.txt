@@ -38,6 +38,9 @@ Java Basic
        如果该index处有元素，则发生hash冲突，遍历该处链表，若找到key相同的节点直接更新节点的值，否则将新节点添加到链表最后
     b. 扩容过程，存储键值对数目超过size(16) * factor(0.75)时需要扩容，新建数组，同一index位置的元素链表各元素key的hash值与oldSize进行与操作，
        若结果为0，该元素放在新数组的相同index的位置，否则放在index + oldSize的位置
+    c. Collections.synchronizedMap()和ConcurrentHashMap的区别:
+       Collections.synchronizedMap(): 返回的是静态内部类SynchronizedMap，其实现方式是将传入的map的所有方法放在synchronized修饰的代码块中
+       ConcurrentHashMap: 锁粒度更细，对每个Segment加锁
 
 10. LinkedHashMap继承自HashMap，使用HashMap的Node数组存储数据，并维护一个继承自HashMap.Node的静态内部类Entry形成的双向链表。该链表维护着
     HashMap中各个元素的访问顺序(LRU策略)
@@ -71,6 +74,11 @@ Java Basic
        flip(): 转换为读模式，limit设置到position位置，position归0
        clear(): 设置position=0, limit=capacity，并不会清空数据，写入时直接覆盖
     c. selector: 允许单线程处理多个通道
+
+15. 双检锁的单例模式实现为什么要加volatile关键字:
+    a. 禁止指令重排: new Singleton()不是原子操作，开辟存储区内存，初始化对象，返回内存引用。构造函数(赋值操作，返回内存引用)可能在初始化完成前结束，
+       此时线程B判断instance不是null，就不会new，但其实拿到的是没有初始化的对象
+    b. 保证可见性: 线程A初始化之后在工作区域内创建了实例还没来得及同步到主存中，线程B在主存中判断实例为null，则新建实例
 
 JVM
 1.  垃圾收集器
