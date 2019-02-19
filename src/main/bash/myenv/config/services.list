@@ -1,0 +1,4 @@
+MVN_HOME=/Users/yuwenyun/Documents/apache-maven-3.6.0
+MONGO_HOME=/Users/yuwenyun/Documents/mongodb-osx-x86_64-4.0.5
+GRADLE_HOME=/Users/yuwenyun/Documents/gradle-5.1
+SSHPASS_HOME=/Users/yuwenyun/Documents/sshpass-1.05
