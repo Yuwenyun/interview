@@ -19,7 +19,7 @@ Java Basic
 6.  LinkedList底层实现是Node类型的双向链表
     a. ArrayList通过调用System.arraycopy()实现批量增加，LinkedList使用for循环遍历新增元素转化的数组依次插入节点
     b. 通过下标获取某个元素时，会计算给定index值处于size的前半端还是后半端决定从head/tail遍历过去，提升效率
-    c. 增、删操作都会该表modCount的值
+    c. 增、删操作都会改变modCount的值
 
 7.  PriorityQueue使用数组实现的完全二叉树结构(小顶堆)，不允许null元素
     a. 扩容与ArrayList相似
@@ -61,6 +61,10 @@ Java Basic
     c. 调用threadLocal.set(t)方法将会生成以threadLocal为键，t为值的键值对存储在当前thread的ThreadLocalMap属性里
     d. 内存充足时可以使用threadLocal为不同线程提供某变量副本，使得各线程对变量的操作互不相干
 
+    note: threadlocal的问题
+    a. 占用大量内存
+    b. 造成内存泄漏
+
 13. 枚举类型
     a. 所有枚举类型都继承自java.lang.Enum抽象类，枚举类型的每一个值都会映射到protected Enum(String name, int ordinal)构造函数中
     b. 自定义Enum类型的成员变量，需要在class定义中先枚举所有值，再按照class定义的语法定义
@@ -75,10 +79,32 @@ Java Basic
        clear(): 设置position=0, limit=capacity，并不会清空数据，写入时直接覆盖
     c. selector: 允许单线程处理多个通道
 
+    阻塞与非阻塞的区别: 传统IO是阻塞IO因为如果没有接收到指定数据量，则会一直阻塞等待达到相应的数据量才返回，非阻塞IO则直接返回，没有收到的数据等到达缓冲区之后再拿
+
 15. 双检锁的单例模式实现为什么要加volatile关键字:
     a. 禁止指令重排: new Singleton()不是原子操作，开辟存储区内存，初始化对象，返回内存引用。构造函数(赋值操作，返回内存引用)可能在初始化完成前结束，
        此时线程B判断instance不是null，就不会new，但其实拿到的是没有初始化的对象
     b. 保证可见性: 线程A初始化之后在工作区域内创建了实例还没来得及同步到主存中，线程B在主存中判断实例为null，则新建实例
+
+16. 线程池ThreadPoolExecutor的keepAlive参数如何起作用的？
+    新建的线程启动后会执行传入的任务，若执行完成会通过一个while循环拉取阻塞队列上的任务getTask()，若当前队列为空，则通过阻塞队列的Condition成员变量的
+    awaitNano()方法挂起等待keepAlive的时间，等待结束后，若队列中有了新的任务，继续拉取执行，否则返回运行结束
+
+17. ConcurrentHashMap(1.8)
+    a. put()的过程，如果Node数组为空，则初始化数组，使用cas初始化sizeCtl属性，对key的hash值做hash算法(高16位异或低16位)，并模上大小16
+       若指定位置上没有数据，使用cas向该位置添加新节点，否则使用synchronize代码块锁定该Node向下读链表，找到相同key则更新，否则追加新的Node
+    b. 扩容过程，transferIndex指针指向Node数组最大index处，若有线程发现达到扩容阙值，则线程通过for+cas的方式将transferIndex=-16，表示当前线程
+       领取任务，将迁移index为[n-16, n)的Node数据，迁移完成的Node将被设置为ForwardingNode类型的节点(继承自Node，hash=-1,key=value=next=null，维护
+       一个nextTable[]指向迁移之后的数据在新数组的位置)
+
+       若此时有新的线程执行get操作找到Node[i]并发现其为ForwardingNode，则调用其find()从nextTable[]中查找
+       若此时有新的线程执行put操作找到Node[i]并发现其为ForwardingNode，则通过for+cas的方式将transferIndex=-16，领取[n-32,n-16)的Node数据的迁移任务
+       (若transferIndex已经为0，不领取任务直接返回)
+       迁移数据的while循环中会判断线程自己的任务是否全部完成，如果是则尝试重置transferIndex=-16继续领取任务直到transferIndex=0
+
+18. CopyOnWriteArrayList
+    a. 添加元素时，加锁防止多份复制，复制时调用的Arrays.copyOf(elements, n+1), 每增加一个元素，数组复制到新的数组，新数组大小增加1
+    b. 读取元素永远是在读取老的数组，所有不会有并发的问题. CopyOnWriteArrayList只能保证最终一致性，不能保证实时一致性
 
 JVM
 1.  垃圾收集器
@@ -132,6 +158,8 @@ JVM
     B+树，非叶子节点不存储数据，数据存储在叶子节点，非叶子节点存储导航数据，所有叶子节点有指针相连
     B*树，非叶子节点有指针指向兄弟节点
 
+5.  跳表，有很多层Node有序链，最底层包含了所有的元素，如果一个元素出现在第i层中，那么它在i之下的层也会出现，每个节点都有两个指针，指向下一个节点和下一层
+
 Spring
 1.  什么是spring boot: 基于spring framework的简化繁重配置，并且可独立运行的一站式解决方案
     独立运行: 内置各种servlet容器，tomcat, jetty等，打包成独立的可执行jar包即可
@@ -154,6 +182,9 @@ Spring
         org.springframework.boot.autoconfigure.EnableAutoConfiguration=...
     若类路径下存在该配置项配置的类，则会加载配置类，该配置类中又可以通过@ConditionalOnClass等注解决定相关配置是否存在，若存在则新建bean
 
+    @EnableAutoConfiguration被@AutoConfigurationPackage和@Import(EnableAutoConfigurationImportSelector.class)修饰，前者定义包路径，
+    后者引入配置类EnableAutoConfigurationImportSelector.java, 该类加载spring.factories中的EnableAutoConfiguration属性
+
 5.  spring boot读取配置的几种方式
     a. 读取application配置文件.properties/.yml
        a). @Value("${db.url}"
@@ -170,6 +201,59 @@ Spring
     a. 在application.properties中配置spring.profiles.active=test则将使用application-test.properties中的配置
     b. @Profile与@Configuration和@Component结合使用将在指定激活的Profile时才有效
 
+7.  如何实现spring boot项目的热部署: 继承spring-boot-devtools模块，其使用两个classloader加载类，一个加载不会改变的如第三方的类，一个加载应用程序中
+    的类，检测到classpath下类发生改变时，加载改变类的classloader(restart classloader)将会被丢弃，新建一个classloader重新加载实现热启动
+    (需在IDE中设置自动编译，spring-boot-maven-plugin的configuration.fork配置true)
+    可通过如下配置更改热部署行为
+    spring.devtools.restart.enabled=true
+    spring.devtools.restart.exclude=WEB-INFO/**  -- 排除对此路径下文件改动的检测
+
+8.  spring boot启动原理
+    a. 几个重要的注解
+       @SpringBootApplication = @SpringBootConfiguration + @EnableAutoConfiguration + @ComponentScan
+       @SpringBootConfiguration = @Configuration
+       @EnableAutoConfiguration: 被@AutoConfigurationPackage和@Import(EnableAutoConfigurationImportSelector.class)修饰
+       @AutoConfigurationPackage: 限制返回当前主程序类(main所在类)的同级或子级包(做为扫描起始点)
+       @Import: 导入其他配置，将扫描classpath下META/spring.factories中键为EnableAutoConfiguration的配置
+
+    b. 执行流程
+       1). SpringApplication.run()将新建一个SpringApplication对象，并调用该对象的run()方法
+       2). SpringApplicaiton对象主要有sources, webApplication, initializers, listeners, mainApplicationClass等几个属性
+           soures为传入的args参数
+           webApplication为布尔变量，通过判断classpath中是否存在javax.servlet.Servlet和org.springframework.web.context.ConfigurableWebApplicationContext
+           来决定是否为true
+           initializers: 通过SpringFactoriesLoader.loadFactoryNames()来加载spring.factories中ApplicationContextInitializer为键的配置
+           listeners: 通过SpringFactoriesLoader来加载spring.factories中ApplicationListener为键的配置
+
+           (note: initializers帮助创建ApplicationContext对象，listeners主要监听spring-boot不同阶段的SpringApplicationEvent事件)
+       3). 调用run()方法
+           配置环境Environment: 主要管理profile和properties
+           创建ApplicationContext: 默认选择AnnotationConfigApplicationContext
+
+9.  spring boot打包成可运行jar包的原理
+    a. 使用spring-boot-maven-plugin插件将应用打包成固定结构的jar包
+       |-- META-INFO
+       |   |-- MANIFEST.MF
+       |-- application.properties
+       |-- com
+       |   |-- example
+       ...
+       |-- lib
+       |   |-- spring-beans-4.2.3.RELEASE.jar
+       ...
+       |-- org
+       |   |-- springframework
+       ...
+    b. MANIFEST.MF中指定main-class为JarLauncher，start-class为应用的main入口
+    c. JarLauncher获取/lib下所有依赖的jar的URL并构造LaunchedURLClassLoader用来加载jar中的class
+    d. 新建线程，启动应用程序的start-class指定的main所在的内
+
+    note: LaunchedURLClassLoader提供加载jar中jar中的类的能力
+
+10. spring boot如何启动打包后内置web服务器
+    SpringBootApplication实例的webApplication属性通过判断classpath中是否有Servlet或者ConfigurableWebApplicationContext类来设置为true/false
+    如果为true，则创建AnnotationConfigEmbeddedWebApplicationContext(否则创建AnnotationConfigApplicationContext)，并调用
+    EmbeddedServletContainerFactory(TomcatEmbeddedServletContainerFactory/JettyEmbeddedServletContainerFactory) 启动服务器实例
 
 Kafka
 1.  kafka特性
@@ -222,15 +306,87 @@ Kafka
     d. 由producer发送的数据会缓存，达到阙值之后批量发送
     e. 对发送的数据进行数据压缩
 
+分布式
+1.  CAP原理
+    Consistency: 一致性，表示多个节点中，对一个节点的写操作之后，对任意节点的读操作都应该返回写操作之后的结果
+    Availability: 可用性，收到用户请求，就必须返回用户回应
+    Partition: 分区容错性，要能够容忍不同分区的通讯不畅的问题，分布式系统应该仍然可用
+    Note: 一般来说分布式系统分区不可避免，所以需要保证C和A，一致性和可用性又是相互矛盾的，只能保证其一
+    (保证一致性要求对A节点写入时，B节点不能读写，同步之后才行，此时无法保证可用性)
 
+2.  如何实现分布式锁
+    a. 基于数据库: 以mysql的InnoDB引擎为例，表需要有唯一索引，使用行级排他锁，获取锁添加数据，释放锁删除数据
+       特点:
+         a). 解锁失败锁无法释放
+         b). 阻塞: 可通过行级排他锁阻塞
+         c). 可重入性: 不可重入
+         d). 超时: 无超时机制
+    b. 基于分布式缓存: 性能好
+    c. 基于zk
+       a). 不会出现死锁，临时节点只有一个客户端可以设置成功
+       b). 可以实现阻塞，给临时节点设置监听器并将自身挂起，发生变化得到通知继续竞争
+       c). 可重入: 节点上保存客户端信息，获取时发现是自己可直接获得锁
+       d). 单点失效: 无单点失效问题，zookeeper自身可分布式部署
 
+Spring MVC
+1.  什么是Restful
+    a. Representational State Transfer，资源的表现层转移。
+       a). 每一种资源都使用一个唯一的URI标志
+       b). 基于HTTP协议请求资源时可以使用GET, PUT, POST, DELETE对资源进行操作
+       c). 对资源的操作将会导致资源状态的改变
 
+       note: 幂等性是指相同请求无论对资源操作多少次，资源的状态改变相同。GET, PUT, DELETE具有幂等性，POST没有
 
+2.  Spring MVC的启动流程
 
+web.xml
 
+<context-param>
+    <param-name>contextConfigLocation</param-name>
+    <param-value>/WEB-INF/applicationContext.xml,/WEB-INF/action-servlet.xml,/WEB-INF/jason-servlet.xml</param-value>
+</context-param>
+<listener>
+    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+</listener>
 
+<servlet>
+    <servlet-name>teach</servlet-name>
+    <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>
+</servlet>
+<servlet-mapping>
+    <servlet-name>teach</servlet-name>
+    <url-pattern>/</url-pattern>
+</servlet-mapping>
 
+    a. tomcat容器加载web.xml文件的<context-param>和<listener>两个节点，创建ServletContext对象，并以键值对的方式将<context-param>配置
+       的信息存到ServletContext
+    b. 调用<listener>的contextInitialized()方法，这个配置类必须实现ServletContextListener，spring mvc提供ContextLoaderListener
+    c. contextInitialized()方法中创建webApplicationContext(IoC容器)，并保存在ServletContext中
+    d. 根据<servlet>节点定义的servlet类实例化DispatcherServlet，并为其初始化自己的servletContext，以webApplicationContext为父亲
 
+3.  web容器如tomcat如何与spring建立联系，主要通过ContextLoaderListener实例化IoC容器并注册到ServletContext，然后实例化DispatcherServlet也注册到ServletContext
+4.  DispatcherServlet -> FrameworkServlet -> HttpServletBean -> HttpServlet
+
+5.  HandlerMapping由DispatcherServlet调用，DispatcherServlet从容器中取出所有的HandlerMapping实例并遍历，让HandlerMapping根据自己的
+    实现方式去查找对应的Handler和HandlerInterceptor，包装成HandlerExecutionChain一并返回给DispatcherServlet
+
+    a. HandlerMapping主要有两种，AbstractUrlHandlerMapping和AbstractHandlerMethodMapping. 前者映射Url到Controller，后者映射到方法
+    b. RequestMappingHandlerMapping作为AbstractHandlerMethodMapping的实现，初始化时会获取所有被@Controller或者@RequestMapping修饰的类，并
+       将所有的处理方法注册到一个Map<Method, RequestMappingInfo>中，请求分发过来时，通过查找Map中是否有这个key即可找到对应的Method，返回HandlerMethod对象
+
+6.  HandlerAdaptor由DispatcherServlet调用，DispatcherServlet会根据配置文件注册HandlerAdaptor，如果没有配置，默认会注册如下三种
+    a. HttpRequestHandlerAdaptor:
+    b. SimpleControllerHandlerAdaptor: 支持实现了Controller接口的Handler
+    c. AnnotationMethodHandlerAdaptor: 适配注解Handler，如@Controller
+
+网络协议
+1.  http1.0，http1.1，http2.0区别
+    a. 连接: 1.0默认不是长连接，一个连接处理一个请求，需要使用keep-alive去维持长连接。2.0默认使用长连接
+    b. 缓存: 1.0使用if-modified-since, expire来标志失效，1.1新增if-match, if-none-match等新的策略
+    c. 带宽: 1.1支持只发送header信息，若返回200再继续发送body信息
+    d. Host: 1.1支持虚拟主机IP
+    e. 多路复用: 2.0支持多路复用，同一个连接处理多个请求
 
 
 
