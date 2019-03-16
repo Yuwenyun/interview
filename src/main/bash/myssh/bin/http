@@ -1,0 +1,47 @@
+#!/bin/bash
+
+http_home=`dirname $0`/..
+echo ${http_home}
+
+# load the properties
+source ${http_home}/config/es_hosts.properties
+
+# process the function
+if [[ $# < 3 ]]; then
+  echo "Usage: ${0} [function] [targetHost] [esArgs]"
+  exit
+fi
+
+func=${1}
+eval dest=\$${2}
+args=${3}
+data=${4}
+
+# reset the function
+case ${func} in
+  get)
+    func=GET
+    ;;
+  post)
+    func=POST
+    ;;
+  head)
+    func=HEAD
+    ;;
+  put)
+    func=PUT
+    ;;
+  delete)
+    func=DELETE
+    ;;
+  *)
+    echo "Unsupported funciton for now..."
+    exit;
+    ;;
+esac
+
+if [ -z "${data}" ]; then
+  eval curl -X${func} '${dest}/${args}?pretty'
+else
+  eval curl -X${func} '${dest}/${args}?pretty' -d '${data//"/\\"}'
+fi
