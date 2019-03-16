@@ -26,7 +26,7 @@ host(){
 }
 
 mysql(){
-  eval /usr/local/bin/sshpass -p \${${targetHost}_pass} /Users/yuwenyun/Documents/services/mysql/bin/mysql -h \$${targetHost} -u \${${targetHost}_acct} -p
+  eval /usr/local/bin/sshpass -p \${${targetHost}_pass} ${MYSQL_HOME}/bin/mysql -h \$${targetHost} -u \${${targetHost}_acct} -p
 }
 
 case $func in
